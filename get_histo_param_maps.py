@@ -2,7 +2,97 @@ import cv2
 import pandas as pd
 import numpy  as np
 import matplotlib.pyplot as plt
+import tifffile
 
+def large_size(path_in, name, key=1):
+    """
+    Get the dimensions of an NDPI file.
+
+    Args:
+        path_in (str): Folder containing the NDPI file.
+        name (str): Base name of the NDPI file.
+        key (int): TIFF image key for reading. Defaults to 1.
+
+    Returns:
+        tuple: Width and height of the image.
+    """
+    histo = tifffile.imread(path_in + name + '.ndpi', key=key)
+    w,h,_ = histo.shape
+    
+    return w, h
+    
+            
+def get_mask(path_ndpi, path_masks, name, pad, size=5120, key=1):
+    """
+    Generate mask of whole image by stitching smaller mask tiles, adjusting for padding.
+
+    Args:
+        path_ndpi (str): Path to the folder containing the NDPI files.
+        path_masks (str): Path to the folder containing the mask tiles.
+        name (str): Base name of the image.
+        pad (list[int]): Padding [top, bottom, left, right] for the mask.
+        size (int): Size of each mask tile. Defaults to 5120.
+        key (int): TIFF image key for reading. Defaults to 1.
+
+    Returns:
+        tuple: Full mask (numpy.ndarray), width, and height of the original image.
+    """
+
+    w, h = large_size(path_ndpi, name, key=key)
+    w_mask, h_mask = w+pad[2]+pad[3], h+pad[0]+pad[1]
+    mask = np.zeros((w_mask, h_mask))
+    print('Shape: ',  w, h, w_mask, h_mask)
+    
+    count   = 0
+    for i in range(int(w_mask/size)):
+        for j in range(int(h_mask/size)):
+            print(i, j, count)
+            img = cv2.imread(path_masks + name + '_5120_' + str(count) + '_mask.png')[:,:,0]
+            mask[i*size:(i+1)*size, j*size:(j+1)*size] = img
+            count += 1
+        
+    return mask[pad[2]:w+pad[2], pad[0]:h+pad[0]], w, h
+
+
+def get_txt_from_masks(folder_ndpi, folder_masks, sid, s, pad, patch_size=512, key=1):
+    """
+    Extract tissue type fractions from mask tiles and save results in a text file.
+
+    Args:
+        folder_ndpi (str): Folder containing NDPI files.
+        folder_masks (str): Folder containing mask tiles.
+        sid (str): Sample ID.
+        s (str): Sub-sample identifier.
+        pad (list[int]): Padding [top, bottom, left, right] for the mask.
+        patch_size (int): Size of individual patches for analysis. Defaults to 512.
+        key (int): TIFF image key for reading. Defaults to 1.
+
+    Returns:
+        None. Saves tissue type proportions (epithelium, stroma, lumen) to a text file.
+    """
+    
+    path_ndpi   = f'{folder_ndpi}/sid/' 
+    path_masks  = f'{folder_masks}/sid/{s}_masks/' 
+    name        = f'{sid}_{s}' 
+    
+    mask, w, h = get_mask(path_ndpi, path_masks, name, pad, size=5120, key=key)
+
+    file = open(name+'.txt', 'w')
+    file.close()   
+    
+    
+    for i in range(int(w/patch_size)):
+        for j in range(int(h/patch_size)):
+            img         = mask[i*patch_size:(i+1)*patch_size, j*patch_size:(j+1)*patch_size] 
+            epithelium  = np.count_nonzero(img == 1) /262144
+            stroma      = np.count_nonzero(img == 2) /262144
+            lumen       = 1-epithelium-stroma
+        
+            f = open(name+".txt", "a")
+            f.write(str(epithelium)+'\t'+str(stroma)+'\t'+str(lumen)+'\t'+'\n')
+            f.close()
+            
+            
 def num_to_idx(num, w):
     """
     Converts a tile index into row & column indices based on the width of the original image.
@@ -135,7 +225,7 @@ def save_img(out_folder, img, name, flip_v, flip_h, mask_name=None):
         cv2.imwrite(f'{out_folder}/{name}{mask_name}.png', saved_img) 
         
 
-def get_density_and_fractions(out_folder, sample, sid, fractions=True, plot=False):
+def get_density_and_fractions(out_folder, sample, csv_name, fractions=True, plot=False):
     """
     Processes cell density and tissue fraction (optional) data, plots (optional) and saves results.
 
@@ -161,7 +251,7 @@ def get_density_and_fractions(out_folder, sample, sid, fractions=True, plot=Fals
         flip_h = False
     
     ##### Cell density #####
-    df           = pd.read_csv('./CSV/results_'+ sid +'.csv')
+    df           = pd.read_csv(f'./CSV/results_{csv_name}.csv')
     density_list = df[' count'].to_numpy()/0.216/1.15 # Area of pixel is 0.216 um^, normalisation factor of 1.15
     img_density  = create_image(density_list, sample[1], sample[2])
     
