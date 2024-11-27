@@ -2,7 +2,7 @@
 
 This project is organised as follows. There is a Jupyter Notebook (```pipeline.ipynb```) that exemplifies how to use all the Python functions. These make up steps 1, 4 and 5. 
 
-## 1. Divide histology image into patches
+### 1. Divide histology image into patches
 
 Input: 
 - NDPI image
@@ -10,7 +10,7 @@ Input:
 Output: 
 - Image patches (saved as .png)
 
-## 2. Count cell nuclei per patch in QuPath
+### 2. Count cell nuclei per patch in QuPath
 
 Input: 
 - Image patches
@@ -18,7 +18,7 @@ Input:
 Output:
 - CSV file 
 
-## 3. Get tissue fractions in ImagePro
+### 3. Get tissue fractions in ImagePro
 
 Input:
 - Image patches
@@ -26,7 +26,7 @@ Input:
 Output:
 - Image patch masks
 
-## 4. Obtain histologically-derived quantitative maps
+### 4. Obtain histologically-derived quantitative maps
 
 Input:
 - CSV file with cell density per histo patch
@@ -35,7 +35,7 @@ Input:
 Output:
 - Histology-derived maps: cell density, epithlelial fraction, lumen fraction, stroma fraction
 
-## 5. Compare ROIs in histology and VERDICT maps
+### 5. Compare ROIs in histology and VERDICT maps
 
 Input:
 - MR Images (mpMRI and VERDICT)
