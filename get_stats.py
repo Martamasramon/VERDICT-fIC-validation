@@ -167,33 +167,21 @@ def plot_correlation(x_vals, y_vals, xlabel, ylabel, nums=[], delete=[]):
     plt.show()
 
 
-def get_auc(data, name):
+def bootstrap_auc(labels, scores, n_bootstraps=1000, rdn_state=42):
     """
-    Calculate and display AUC with confidence intervals for given data.
+    Perform bootstrapping to compute confidence intervals for the AUC.
 
     Args:
-        data (numpy.ndarray): Input data array with two classes.
-        name (str): Name of the parameter being analyzed.
+        labels (numpy.ndarray): Ground truth labels (binary classification).
+        scores (numpy.ndarray): Predicted scores for each sample.
+        n_bootstraps (int): Number of bootstrap samples (default 1000).
+        rdn_state (int): Random seed for reproducibility (default 42).
+
+    Returns:
+        tuple: Lower and upper bounds of the 95% confidence interval for AUC.
     """
     
-    print(f"{name}")
-    
-    mean_1, mean_2, std_1, std_2 = np.mean(data[0, :]), np.mean(data[1, :]), np.std(data[0, :]), np.std(data[1, :])
-    print(f"Benign: {mean_2:.2f} +/- {std_2:.2f} ")
-    print(f"PCa: {mean_1:.2f} +/- {std_1:.2f} ")
-    # Flatten data and create labels
-    scores = np.concatenate([data[0, :], data[1, :]])
-    if 'ADC' in name or 'Lumen' in name: 
-        labels = np.concatenate([np.zeros(data.shape[1]), np.ones(data.shape[1])])
-    else:
-        labels = np.concatenate([np.ones(data.shape[1]), np.zeros(data.shape[1])])
-
-    # Calculate AUC
-    auc_value = roc_auc_score(labels, scores)
-
-    # Bootstrap to calculate confidence intervals
-    n_bootstraps = 1000
-    rng = np.random.RandomState(42)  # For reproducibility
+    rng = np.random.RandomState(rdn_state)  # For reproducibility
     bootstrapped_aucs = []
 
     for _ in range(n_bootstraps):
@@ -208,11 +196,26 @@ def get_auc(data, name):
     # Calculate 95% CI
     ci_lower = np.percentile(bootstrapped_aucs, 2.5)
     ci_upper = np.percentile(bootstrapped_aucs, 97.5)
+
+    return ci_lower, ci_upper
+
+
+def auc_p_val(labels, scores, auc_value, n_permutations=10000, rdn_state=42):
+    """
+    Perform a permutation test to compute the p-value for the AUC.
+
+    Args:
+        labels (numpy.ndarray): Ground truth labels (binary classification).
+        scores (numpy.ndarray): Predicted scores for each sample.
+        auc_value (float): Observed AUC value.
+        n_permutations (int): Number of permutations for the test (default 10000).
+        rdn_state (int): Random seed for reproducibility (default 42).
+
+    Returns:
+        float: P-value indicating the significance of the observed AUC.
+    """
     
-    print(f"AUC: {auc_value:.2f} [{ci_lower:.2f}, {ci_upper:.2f}] ")
-    
-    # Permutation test for p-value
-    n_permutations = 10000
+    rng = np.random.RandomState(rdn_state)  # For reproducibility
     permuted_aucs = []
 
     for _ in range(n_permutations):
@@ -223,4 +226,40 @@ def get_auc(data, name):
     # Calculate p-value
     # Count how many permuted AUCs are at least as extreme as the observed AUC
     p_value = (np.sum(np.array(permuted_aucs) >= auc_value) + 1) / (n_permutations + 1)
+    return p_value
+
+
+def get_auc(data_1, data_2, name, label_1='csPCa', label_2='Benign'):
+    """
+    Calculate and display AUC with confidence intervals for given data.
+
+    Args:
+        data_1 (numpy.ndarray): Input data of class 1.
+        data_2 (numpy.ndarray): Input data of class 2.
+        name (str): Name of the parameter being analyzed.
+        label_1 (str): Name of data class 1.
+        label_2 (str): Name of data class 2.
+    """
+    
+    print(f"{name}")
+    
+    mean_1, mean_2, std_1, std_2 = np.mean(data_1), np.mean(data_2), np.std(data_1), np.std(data_2)
+    print(f"{label_1}: {mean_1:.2f} +/- {std_1:.2f} ")
+    print(f"{label_2}: {mean_2:.2f} +/- {std_2:.2f} ")
+    
+    # Flatten data and create labels
+    scores = np.concatenate([data_1, data_2])
+    if mean_2>mean_1: 
+        labels = np.concatenate([np.zeros(len(data_1)), np.ones(len(data_2))])
+    else:
+        labels = np.concatenate([np.ones(len(data_1)), np.zeros(len(data_2))])
+
+    # Calculate AUC
+    auc_value           = roc_auc_score(labels, scores)
+    ci_lower, ci_upper  = bootstrap_auc(labels, scores)
+    
+    print(f"AUC: {auc_value:.2f} [{ci_lower:.2f}, {ci_upper:.2f}] ")
+    
+    # Permutation test for p-value
+    p_value = auc_p_val(labels, scores, auc_value)
     print(f"P-value: {p_value:.5f}\n")

@@ -138,7 +138,7 @@ def plot_imgs(masked_img, cancer_img, benign_img, sid, density=None):
     plt.show()
 
 
-def results_to_numpy_arrays(results):
+def to_numpy_benign_vs_csPCa(results):
     """
     Convert a dictionary of results into structured NumPy arrays for analysis.
 
@@ -154,13 +154,14 @@ def results_to_numpy_arrays(results):
     epith_cancer, epith_benign      = [], []
     stroma_cancer, stroma_benign    = [], []
     lumen_cancer, lumen_benign      = [], []
+    
 
     # Helper function to check if all required values are not None
     def check_keys(keys, s):
         return all(s[key] is not None for key in keys)
 
     for s in results.values():
-        if check_keys(['fIC-cancer', 'density-cancer', 'epithelial-cancer', 'stroma-cancer', 'lumen-cancer'], s):
+        if check_keys(['fIC-cancer', 'density-cancer', 'epithelial-cancer', 'stroma-cancer', 'lumen-cancer'], s):            
             fIC_cancer.append(s['fIC-cancer'])
             density_cancer.append(s['density-cancer'])
             epith_cancer.append(s['epithelial-cancer'])
@@ -182,6 +183,49 @@ def results_to_numpy_arrays(results):
     lumen_vals      = np.array([lumen_cancer, lumen_benign])
 
     return fIC_vals, density_vals, epith_vals, stroma_vals, lumen_vals
+
+
+def to_numpy_by_GG(results, GS_dict):
+    """
+    Convert a dictionary of results into structured NumPy arrays divided by Gleason Grades for analysis.
+
+    Args:
+        results (dict): Dictionary containing analysis results with keys for various tissue properties.
+
+    Returns:
+        tuple: NumPy arrays for fIC, density, epithelial, stroma, and lumen values.
+    """
+    
+    fIC, density, epith, stroma, lumen = {}, {}, {}, {}, {}
+    for param in (fIC, density, epith, stroma, lumen):
+        for GG in GS_dict:
+            param[GG] = []
+
+    # Helper function to check if all required values are not None
+    def check_keys(keys, s):
+        return all(s[key] is not None for key in keys)
+    
+    # Helper function to get GS from dict
+    def find_GS_from_sid(sid, GS_dict):
+        for key, value_list in GS_dict.items():
+            if sid in value_list:
+                return key
+            
+    for key, value in results.items():
+        if check_keys(['fIC-cancer', 'density-cancer', 'epithelial-cancer', 'stroma-cancer', 'lumen-cancer'], value):
+            GG = find_GS_from_sid(key, GS_dict)
+            
+            fIC[GG].append(value['fIC-cancer'])
+            density[GG].append(value['density-cancer'])
+            epith[GG].append(value['epithelial-cancer'])
+            stroma[GG].append(value['stroma-cancer'])
+            lumen[GG].append(value['lumen-cancer'])
+            
+    for param in (fIC, density, epith, stroma, lumen):
+        for GG in GS_dict:
+            param[GG] = np.array(param[GG])
+
+    return fIC, density, epith, stroma, lumen
 
 
 def get_paths(folder, name, hist_name='density', cancer='L1'):
@@ -390,6 +434,27 @@ def get_fraction_density(density, epithelial, stroma, fraction='epithelial'):
     else:
         fraction_density = density * (stroma/(epithelial+stroma))
     return fraction_density
+
+
+def get_fraction_density_GG(density, epithelial, stroma, fraction='epithelial'):
+    """
+    Compute density fraction for epithelial or stromal tissues for ROIs divided by GG.
+
+    Args:
+        density (float): Overall density value.
+        epithelial (float): Epithelial density value.
+        stroma (float): Stromal density value.
+        fraction (str): Tissue type ('epithelial' or 'stromal'). Defaults to 'epithelial'.
+
+    Returns:
+        float: Fractional density value.
+    """
+    
+    fraction_density = {}
+    for GG in density:
+        fraction_density[GG] = get_fraction_density(density[GG], epithelial[GG], stroma[GG], fraction)
+    
+    return fraction_density
         
         
 def boxplot_single(axis, data, title):
@@ -406,4 +471,21 @@ def boxplot_single(axis, data, title):
     """
     
     axis.boxplot([data[0,:], data[1,:]], labels=['csPCa', 'Benign'],widths=0.3)
+    axis.set_title(title)
+    
+
+def boxplot_GG(axis, data, title):
+    """
+    Create a boxplot for a single tissue property for data divided by Gleason grade.
+
+    Args:
+        axis (matplotlib.axis): Axis object for the plot.
+        data (numpy.ndarray): Data array with cancer and benign values.
+        title (str): Title for the plot.
+
+    Returns:
+        None. Displays a boxplot on the specified axis.
+    """
+    
+    axis.boxplot(data.values(), labels=data.keys(),widths=0.3)
     axis.set_title(title)
