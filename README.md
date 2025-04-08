@@ -2,6 +2,10 @@
 
 This project is organised as follows. There is a Jupyter Notebook (```pipeline.ipynb```) that exemplifies how to use all the Python functions. These make up steps 1, 4 and 5. 
 
+You can download some test data from publicly available datasets. These include matched histology and MR images (although neither have VERDICT-MRI data):
+- [PROSTATE-MRI](https://www.cancerimagingarchive.net/collection/prostate-mri/)
+- [Prostate Fused-MRI-Pathology](https://www.cancerimagingarchive.net/collection/prostate-fused-mri-pathology/)
+
 ### 1. Divide histology image into patches
 
 Input: 
