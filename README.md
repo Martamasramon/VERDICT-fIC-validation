@@ -6,6 +6,12 @@ You can download some test data from publicly available datasets to try out sect
 - [PROSTATE-MRI](https://www.cancerimagingarchive.net/collection/prostate-mri/)
 - [Prostate Fused-MRI-Pathology](https://www.cancerimagingarchive.net/collection/prostate-fused-mri-pathology/)
 
+### Set-up
+To install the necessary packages, run ```pip install -r requirements.txt```
+To run sections 2 & 3, you will need to download the following software:
+- [QuPath](https://qupath.github.io/) - free
+- [ImagePro](https://my.mediacy.com/support/updates) - free 7-day trial
+
 ### 1. Divide histology image into patches
 
 Input: 
@@ -14,7 +20,7 @@ Input:
 Output: 
 - Image patches (saved as .png)
 
-### 2. Count cell nuclei per patch in QuPath
+### 2. Count cell nuclei per patch (in QuPath!)
 
 Input: 
 - Image patches
@@ -22,7 +28,7 @@ Input:
 Output:
 - CSV file 
 
-### 3. Get tissue fractions in ImagePro
+### 3. Get tissue fractions (in ImagePro!)
 
 Input:
 - Image patches
