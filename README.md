@@ -23,7 +23,7 @@ Output:
 ### 2. Count cell nuclei per patch (in QuPath!)
 
 Input: 
-- Image patches
+- Image patches (output from 1.)
 
 Output:
 - CSV file 
@@ -31,7 +31,7 @@ Output:
 ### 3. Get tissue fractions (in ImagePro!)
 
 Input:
-- Image patches
+- Image patches (output from 1.)
 
 Output:
 - Image patch masks
@@ -39,8 +39,8 @@ Output:
 ### 4. Obtain histologically-derived quantitative maps
 
 Input:
-- CSV file with cell density per histo patch
-- TXT file with tissue fractions (epithelial, lumen, stroma) per patch
+- CSV file with cell density per histo patch (output from 2.)
+- TXT file with tissue fractions (epithelial, lumen, stroma) per patch (output from 3.)
 
 Output:
 - Histology-derived maps: cell density, epithlelial fraction, lumen fraction, stroma fraction
@@ -49,7 +49,7 @@ Output:
 
 Input:
 - MR Images (mpMRI and VERDICT)
-- Histology-derived maps
+- Histology-derived maps (output from 4.)
 
 Output:
 - Plots of benign vs csPCa ROIs for fIC/ADC and histology-derived maps
